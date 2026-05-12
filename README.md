@@ -1,4 +1,4 @@
-# 🌿 Autarkeia-Polis: Zero-Energy Waste & Pollution Ancient Smart City Masterplan
+# 🌿 Autarkeia-Polis: Zero-Energy Waste & Minimum Pollution Ancient Smart City Masterplan
 <div align="center">
   <img src="badge.svg" width="340"/>
 </div>
