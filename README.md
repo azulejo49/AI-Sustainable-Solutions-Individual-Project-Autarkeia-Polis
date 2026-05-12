@@ -1,4 +1,7 @@
 # 🌿 Autarkeia-Polis: Zero-Energy Waste & Pollution Ancient Smart City Masterplan
+<div align="center">
+  <img src="badge.svg" width="340"/>
+</div>
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Machine Learning](https://img.shields.io/badge/Machine_Learning-FF6F00?style=for-the-badge&logo=scikit-learn&logoColor=white)
