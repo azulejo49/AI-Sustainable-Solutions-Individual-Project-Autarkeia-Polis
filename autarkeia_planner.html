@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autarkeia-Polis Master Planner</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background-color: #1e1e1e; color: #fff; }
+        #sidebar { width: 440px; background-color: #2c3e50; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; display: flex; flex-direction: column; }
+        #sidebar::-webkit-scrollbar { width: 8px; }
+        #sidebar::-webkit-scrollbar-thumb { background-color: #34495e; border-radius: 4px; }
+
+        .brand-container { text-align: center; margin-bottom: 5px; }
+        #sidebar h2 { font-size: 22px; margin-top: 0; color: #2ecc71; border-bottom: 2px solid #2ecc71; padding-bottom: 10px; text-align: center; }
+        .instructions { background-color: #34495e; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; line-height: 1.4; }
+
+        .category-header { font-size: 14px; color: #bdc3c7; margin: 10px 0 5px 0; text-transform: uppercase; font-weight: bold; border-bottom: 1px dashed #7f8c8d; padding-bottom: 3px; }
+
+        .toolbar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+        .tool-btn { background-color: #3b5066; color: white; border: 2px solid transparent; padding: 8px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+        .tool-btn:hover { background-color: #465c75; }
+        .tool-btn.active { border-color: #2ecc71; background-color: #27ae60; }
+        
+        .shape-icon { width: 14px; height: 14px; display: inline-block; flex-shrink: 0;}
+        .shape-circle { border-radius: 50%; }
+        .shape-square { border-radius: 2px; }
+        .shape-line { height: 4px; width: 14px; margin-top: 5px; }
+
+        h3 { color: #3498db; margin-top: 20px; margin-bottom: 10px; font-size: 16px; border-bottom: 1px solid #3498db; padding-bottom: 5px; }
+        .planned-item { display: flex; justify-content: space-between; align-items: center; background-color: #3b5066; padding: 8px 10px; border-radius: 5px; margin-bottom: 8px; font-size: 12px; }
+        .delete-btn { background-color: #e74c3c; color: white; border: none; border-radius: 3px; padding: 4px 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .delete-btn:hover { background-color: #c0392b; }
+
+        #map { flex-grow: 1; height: 100%; }
+        .crosshair-cursor-enabled { cursor: crosshair !important; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="brand-container">
+            <svg width="45" height="45" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                <path fill="#2ecc71" d="M255.563 22.094c-126.81 0-229.594 102.784-229.594 229.594 0 25.4 4.132 49.846 11.75 72.687 40.154-24.203 76.02-41.17 107.56-52.03-35.752 5.615-66.405 23.66-109.843 4 31.552-27.765 87.682-65.842 138.532-71.658 26.58-21.615 68.113-43.962 89.655-37.28 30.492-26.873 67.982-61.093 108.125-85.75 10.667 16.156 17.124 35.94 12.563 57.874-80.37 20.205-61.692 148.928 13.468 67.44 6.348 13.064 9.41 26.665 9.095 41.436-32.675 33.83-66.97 63.026-101.938 87.906.466 23.99-5.605 52.915-19 84.813-5.635 13.42-7.33 36.406 22.875 53.97 101.14-24.012 176.375-114.924 176.375-223.408 0-126.81-102.815-229.593-229.625-229.593zm3.312 164.375c-17.835 2.22-32.794 9.046-45.844 18.968 12.083-.036 25.612 2.882 37.5 6.156 6.208-6.698 10.236-18.52 8.345-25.125z"/>
+            </svg>
+        </div>
+
+        <h2>Autarkeia-Polis Planner</h2>
+
+        <div class="instructions">
+            <b>1. Build:</b> Select tool, click map to draw/drop.<br>
+            <b>2. Edit:</b> Use ✏️ on map to resize shapes.<br>
+            <b>3. Delete:</b> Use list below or the 🗑️ tool.
+        </div>
+
+        <div class="category-header">Agriculture & Husbandry</div>
+        <div class="toolbar-grid">
+            <button class="tool-btn" onclick="startDraw('polygon', 'Urban Food Forest', {color: '#27ae60', fillColor: '#2ecc71', fillOpacity: 0.5})">
+                <div class="shape-icon shape-square" style="background: #2ecc71;"></div> Food Forest
+            </button>
+            <button class="tool-btn" onclick="startDraw('polygon', 'Agroforestry Grain Alleys', {color: '#f39c12', fillColor: '#f1c40f', fillOpacity: 0.5})">
+                <div class="shape-icon shape-square" style="background: #f1c40f;"></div> Grain Alleys
+            </button>
+            <button class="tool-btn" onclick="startDraw('polygon', 'Chinampas (Floating Garden)', {color: '#16a085', fillColor: '#1abc9c', fillOpacity: 0.8})">
+                <div class="shape-icon shape-square" style="background: #1abc9c;"></div> Chinampas
+            </button>
+            <button class="tool-btn" onclick="startDraw('polygon', 'Subterranean Walipini', {color: '#4a235a', fillColor: '#5b2c6f', fillOpacity: 0.8})">
+                <div class="shape-icon shape-square" style="background: #5b2c6f;"></div> Winter Walipini
+            </button>
+            <button class="tool-btn" onclick="startDraw('polygon', 'Dairy Paddock (Goat/Sheep)', {color: '#78e08f', fillColor: '#b8e994', fillOpacity: 0.6})">
+                <div class="shape-icon shape-square" style="background: #b8e994;"></div> Dairy Paddock
+            </button>
+            <button class="tool-btn" onclick="startDraw('polygon', 'Chicken Silvopasture', {color: '#f6b93b', fillColor: '#fad390', fillOpacity: 0.7})">
+                <div class="shape-icon shape-square" style="background: #fad390;"></div> Chicken Coop
+            </button>
+            <button class="tool-btn" onclick="startDraw('polygon', 'Rooftop Greenhouse', {color: '#8e44ad', fillColor: '#9b59b6', fillOpacity: 0.6})">
+                <div class="shape-icon shape-square" style="background: #9b59b6;"></div> Summer Greenhouse
+            </button>
+            <button class="tool-btn" onclick="startDropNode('Smart Apiary', {radius: 8, color: '#d35400', fillColor: '#f39c12', fillOpacity: 0.9})">
+                <div class="shape-icon shape-circle" style="background: #f39c12;"></div> Apiary Node
+            </button>
+        </div>
+
+        <div class="category-header">Architecture & Physical Layer</div>
+        <div class="toolbar-grid">
+            <button class="tool-btn" onclick="startDraw('polygon', 'Rammed Earth Housing', {color: '#d35400', fillColor: '#e67e22', fillOpacity: 0.8})">
+                <div class="shape-icon shape-square" style="background: #e67e22;"></div> Rammed Earth Block
+            </button>
+            <button class="tool-btn" onclick="startDraw('polygon', 'Biochar Pyrolysis Plant', {color: '#2c3e50', fillColor: '#34495e', fillOpacity: 0.9})">
+                <div class="shape-icon shape-square" style="background: #34495e;"></div> Biochar Facility
+            </button>
+            <button class="tool-btn" onclick="startDraw('polygon', 'Eco-Battery Storage Field', {color: '#006266', fillColor: '#009432', fillOpacity: 0.8})">
+                <div class="shape-icon shape-square" style="background: #009432;"></div> Energy Storage
+            </button>
+            <button class="tool-btn" onclick="startDropNode('Kinetic Water Pump (Wind)', {radius: 12, color: '#2c3e50', fillColor: '#34495e', fillOpacity: 0.9})">
+                <div class="shape-icon shape-circle" style="background: #34495e;"></div> Wind Water Pump
+            </button>
+            <button class="tool-btn" onclick="startDropNode('Kinetic Gristmill (Flour)', {radius: 12, color: '#5d4037', fillColor: '#795548', fillOpacity: 0.9})">
+                <div class="shape-icon shape-circle" style="background: #795548;"></div> Wind Gristmill
+            </button>
+            <button class="tool-btn" onclick="startDropNode('Yakhchal Cold Storage', {radius: 12, color: '#0984e3', fillColor: '#dfe6e9', fillOpacity: 0.9})">
+                <div class="shape-icon shape-circle" style="background: #dfe6e9; border: 1px solid #0984e3;"></div> Yakhchal Storage
+            </button>
+        </div>
+
+        <div class="category-header">Water & Thermal Routing</div>
+        <div class="toolbar-grid">
+            <button class="tool-btn" onclick="startDraw('polyline', 'Ondol Thermal Network', {color: '#e74c3c', weight: 5, dashArray: '10, 10'})">
+                <div class="shape-icon shape-line" style="background: #e74c3c;"></div> Ondol Heating Lines
+            </button>
+            <button class="tool-btn" onclick="startDraw('polyline', 'Qanat (Winter Water Channel)', {color: '#3498db', weight: 5, dashArray: '8, 8'})">
+                <div class="shape-icon shape-line" style="background: #3498db;"></div> Qanat Channel
+            </button>
+            <button class="tool-btn" onclick="startDropNode('Stepwell / Baori Plaza', {radius: 14, color: '#2c3e50', fillColor: '#2980b9', fillOpacity: 0.9})">
+                <div class="shape-icon shape-circle" style="background: #2980b9; border: 2px solid #2c3e50;"></div> Stepwell Plaza
+            </button>
+            <button class="tool-btn" onclick="startDropNode('Gravity Reservoir (Summer)', {radius: 12, color: '#2980b9', fillColor: '#3498db', fillOpacity: 0.9})">
+                <div class="shape-icon shape-circle" style="background: #3498db;"></div> Gravity Reservoir
+            </button>
+        </div>
+
+        <div class="category-header">Mobility</div>
+        <div class="toolbar-grid">
+            <button class="tool-btn" onclick="startDraw('polyline', 'Permeable Cycle Route', {color: '#f1c40f', weight: 4, dashArray: '8, 8'})">
+                <div class="shape-icon shape-line" style="background: #f1c40f;"></div> Cycle Route
+            </button>
+            <button class="tool-btn" onclick="startDraw('polyline', 'Solar Pod Tram Route', {color: '#9b59b6', weight: 6})">
+                <div class="shape-icon shape-line" style="background: #9b59b6;"></div> Pod Tram
+            </button>
+        </div>
+
+        <div id="dynamic-list-container">
+            <h3>Planned Infrastructure</h3>
+            <div id="planned-zones-list">
+                <p style="font-size: 12px; color: #bdc3c7; font-style: italic;" id="empty-state">No items placed yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        const map = L.map('map').setView([52.2297, 21.0122], 14);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map);
+
+        const drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        const drawControl = new L.Control.Draw({ edit: { featureGroup: drawnItems }, draw: false });
+        map.addControl(drawControl);
+
+        let currentDrawer = null;
+        let activeComponentName = "";
+        let isDroppingNode = false;
+        let nodeOptions = null;
+
+        function resetTools() {
+            if (currentDrawer) { currentDrawer.disable(); currentDrawer = null; }
+            isDroppingNode = false;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('map').classList.remove('crosshair-cursor-enabled');
+            map.off('click', mapClickHandler); 
+        }
+
+        function startDraw(type, name, options) {
+            resetTools();
+            event.currentTarget.classList.add('active');
+            activeComponentName = name;
+
+            if (type === 'polygon') currentDrawer = new L.Draw.Polygon(map, { shapeOptions: options });
+            else if (type === 'polyline') currentDrawer = new L.Draw.Polyline(map, { shapeOptions: options });
+            else if (type === 'circle') currentDrawer = new L.Draw.Circle(map, { shapeOptions: options });
+            
+            currentDrawer.enable();
+        }
+
+        map.on(L.Draw.Event.CREATED, function (event) {
+            const layer = event.layer;
+            const id = L.Util.stamp(layer);
+            layer.options.uniqueId = id;
+            layer.bindTooltip(`<b>${activeComponentName}</b>`, { permanent: false, direction: 'top' });
+            drawnItems.addLayer(layer);
+            addToList(id, activeComponentName);
+            resetTools();
+        });
+
+        function startDropNode(name, options) {
+            resetTools();
+            event.currentTarget.classList.add('active');
+            activeComponentName = name;
+            isDroppingNode = true;
+            nodeOptions = options;
+            document.getElementById('map').classList.add('crosshair-cursor-enabled');
+            setTimeout(() => { map.on('click', mapClickHandler); }, 50); 
+        }
+
+        function mapClickHandler(e) {
+            if (!isDroppingNode) return;
+            const layer = L.circleMarker(e.latlng, nodeOptions);
+            const id = L.Util.stamp(layer);
+            layer.options.uniqueId = id;
+            layer.bindTooltip(`<b>${activeComponentName}</b>`, { permanent: false, direction: 'top' });
+            drawnItems.addLayer(layer);
+            addToList(id, activeComponentName);
+            resetTools(); 
+        }
+
+        function addToList(id, name) {
+            document.getElementById('empty-state').style.display = 'none';
+            const list = document.getElementById('planned-zones-list');
+            const item = document.createElement('div');
+            item.className = 'planned-item';
+            item.id = `item-${id}`;
+            item.innerHTML = `<span>${name}</span> <button class="delete-btn" onclick="removePlannedItem(${id})">X</button>`;
+            list.appendChild(item);
+        }
+
+        window.removePlannedItem = function(id) {
+            const layer = drawnItems.getLayer(id);
+            if (layer) drawnItems.removeLayer(layer);
+            const itemElement = document.getElementById(`item-${id}`);
+            if (itemElement) itemElement.remove();
+            
+            if (document.querySelectorAll('.planned-item').length === 0) {
+                document.getElementById('empty-state').style.display = 'block';
+            }
+        };
+
+        map.on(L.Draw.Event.DELETED, function (event) {
+            event.layers.eachLayer(function (layer) {
+                const id = L.Util.stamp(layer);
+                const itemElement = document.getElementById(`item-${id}`);
+                if (itemElement) itemElement.remove();
+            });
+            if (document.querySelectorAll('.planned-item').length === 0) {
+                document.getElementById('empty-state').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
