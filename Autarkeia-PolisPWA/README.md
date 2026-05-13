@@ -4,7 +4,7 @@
 </div>
 > **Zero-Energy Waste • Self-Sufficient • Smart Ancient City Master-Plan**
 
-Autarkeia-Polis is a centralized dashboard and spatial visualization engine for managing a simulated zero-energy, self-sufficient smart city. Built as an interactive digital twin, it prioritizes ancient passive physics (such as Badgirs and Chinampas) over active electrical energy, maintaining absolute urban equilibrium.
+Autarkeia-Polis is a centralized dashboard and spatial visualization engine for managing a simulated zero-energy waste, Minimum Pollution, self-sufficient smart city. Built as an interactive digital twin, it prioritizes ancient passive physics (such as Badgirs and Chinampas) over active electrical energy, maintaining absolute urban equilibrium.
 
 ![Autarkeia-Polis Overview](public/vite.svg)
 
