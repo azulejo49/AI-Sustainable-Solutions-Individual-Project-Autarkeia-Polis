@@ -305,13 +305,16 @@ function AIOverseerWidget({ className }: { className?: string }) {
       const responseStream = await ai.chats.create({
         model: 'gemini-3-flash-preview',
         config: { 
-          systemInstruction: `You are the Digital Overseer of Autarkeia-Polis. Current status: ${cityState}.
-If the user asks you to take physical action (like harvesting, building, adjusting cooling), output a JSON block ANYWHERE in your response like this exactly:
+          systemInstruction: `You are the Digital Overseer Machine Learning Engine of Autarkeia-Polis. Current status: ${cityState}.
+You manage 5 Core Domains (Isolation Forest for Apiaries, Predictive Qanat Routing, Random Forest Thermal Routing, Biochar Pyrolysis optimization, Gradient Boosting Micro-Grid Dispatch).
+
+When telemetry data is injected, evaluate it and output your decision in a highly technical, brief style.
+If the scenario requires a physical resource adjustment, output a JSON block ANYWHERE in your response exactly like this:
 \`\`\`json
-{ "action": "harvest", "target": "chinampa", "amount": 50 }
+{ "action": "adjust", "target": "water", "amount": 100 }
 \`\`\`
-Actions: harvest (adds food), charge (adds energy), dump (uses water).
-Reply concisely emphasizing the adjustments you are making in a few short sentences.` 
+Valid targets: 'energy', 'water', 'food', 'biochar'. Positive amounts add, negative drain.
+Reply concisely emphasizing the mechanical and ML adjustments you are making based on Autarkeia-Polis physics.` 
         }
       }).sendMessageStream({ message: userMsg });
 
@@ -326,16 +329,13 @@ Reply concisely emphasizing the adjustments you are making in a few short senten
         });
       }
 
-      // Very simple action parsing hook for the widget
+      // Action parsing hook for the AI widget
       if (full.includes('```json')) {
         try {
            const jsonStr = full.split('```json')[1].split('```')[0].trim();
            const actionData = JSON.parse(jsonStr);
-           if (actionData.action === 'harvest') {
-              updateResources({ food: actionData.amount || 100 });
-              if (actionData.target) {
-                updateStructureStatus(actionData.target, 'Harvested');
-              }
+           if (actionData.action === 'adjust' && actionData.target) {
+              updateResources({ [actionData.target]: actionData.amount || 0 });
            }
         } catch (e) {
            console.log("Failed to parse AI action");
@@ -395,17 +395,25 @@ Reply concisely emphasizing the adjustments you are making in a few short senten
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="shrink-0 relative z-10 flex gap-2">
-        <input 
-          value={input} onChange={e => setInput(e.target.value)}
-          placeholder="Inject atmospheric or telemetry data..."
-          className="flex-1 bg-stone-800/50 border border-stone-700 rounded-[1.2rem] px-5 py-3 text-sm text-stone-200 font-medium focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 placeholder:text-stone-600 transition-all shadow-inner"
-          disabled={isLoading}
-        />
-        <button type="submit" disabled={isLoading||!input} className="bg-emerald-600 hover:bg-emerald-500 text-emerald-50 font-bold w-12 shrink-0 rounded-[1.2rem] flex items-center justify-center transition-colors disabled:opacity-50">
-           {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-0.5" />}
-        </button>
-      </form>
+      <div className="shrink-0 relative z-10 flex flex-col gap-3">
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => setInput("Telemetry IoT: Hive_3 acoustic freq dropped to 120Hz.")} className="text-[10px] bg-stone-800/80 text-stone-300 py-1.5 px-3 rounded-lg hover:bg-stone-700 border border-stone-700 transition-colors uppercase tracking-wider font-bold">🐝 Apiary Scan</button>
+          <button type="button" onClick={() => setInput("Forecast: -5°C expected. High freeze risk for Summer Towers.")} className="text-[10px] bg-stone-800/80 text-stone-300 py-1.5 px-3 rounded-lg hover:bg-stone-700 border border-stone-700 transition-colors uppercase tracking-wider font-bold">❄️ Winter Routing</button>
+          <button type="button" onClick={() => setInput("Telemetry: Wet chinampa waste batch detected (55% moisture).")} className="text-[10px] bg-stone-800/80 text-stone-300 py-1.5 px-3 rounded-lg hover:bg-stone-700 border border-stone-700 transition-colors uppercase tracking-wider font-bold">♻️ Pyrolysis Ops</button>
+          <button type="button" onClick={() => setInput("Grid Forecast: High evening load approaching. Battery at 90%.")} className="text-[10px] bg-stone-800/80 text-stone-300 py-1.5 px-3 rounded-lg hover:bg-stone-700 border border-stone-700 transition-colors uppercase tracking-wider font-bold">🔋 Micro-Grid</button>
+        </div>
+        <form onSubmit={handleSubmit} className="flex gap-2 w-full">
+          <input 
+            value={input} onChange={e => setInput(e.target.value)}
+            placeholder="Inject atmospheric or telemetry data..."
+            className="flex-1 bg-stone-800/50 border border-stone-700 rounded-[1.2rem] px-5 py-3 text-sm text-stone-200 font-medium focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 placeholder:text-stone-600 transition-all shadow-inner"
+            disabled={isLoading}
+          />
+          <button type="submit" disabled={isLoading||!input} className="bg-emerald-600 hover:bg-emerald-500 text-emerald-50 font-bold w-12 shrink-0 rounded-[1.2rem] flex items-center justify-center transition-colors disabled:opacity-50 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-0.5" />}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
