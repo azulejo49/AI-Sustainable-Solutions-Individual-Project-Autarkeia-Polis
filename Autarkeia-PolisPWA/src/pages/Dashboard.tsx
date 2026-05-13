@@ -6,6 +6,8 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
+import Map, { Marker as MaplibreMarker, Layer, Source, Popup as MaplibrePopup } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { GoogleGenAI } from '@google/genai';
 import { cn } from '../lib/utils';
 import { useCity } from '../context/CityContext';
@@ -51,6 +53,7 @@ const energyData = [
 
 export default function Dashboard() {
   const { resources, structures } = useCity();
+  const [hoverInfo, setHoverInfo] = useState<{lng: number, lat: number, label: string} | null>(null);
   
   const tramSegments = useMemo(() => {
     const positions = structures.filter(s => s.type === 'tram_route').map(s => [s.lat, s.lng] as [number, number]);
@@ -130,50 +133,120 @@ export default function Dashboard() {
 
         {/* Row 3-4 */}
         {/* 3. 3D Map of the City (2 cols, 2 rows) */}
-        <div className="md:col-span-2 row-span-2 bg-stone-900 rounded-[2.5rem] border border-stone-800 shadow-sm overflow-hidden relative group p-1 flex flex-col items-center justify-center">
-            <div className="absolute top-4 xl:top-6 left-6 z-[100] text-white">
+        <div className="md:col-span-2 row-span-2 bg-stone-900 rounded-[2.5rem] border border-stone-800 shadow-sm overflow-hidden relative group p-2 flex flex-col items-center justify-center">
+            <div className="absolute top-6 left-6 z-[100] text-white">
                 <h3 className="text-xl font-black flex items-center gap-2 drop-shadow-md">
                    <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
                    3D Topology Engine
                 </h3>
             </div>
             
-            {/* CSS-based 3D City visual */}
-            <div className="relative w-full h-[300px] flex items-center justify-center" style={{ perspective: '1000px' }}>
-                <div 
-                  className="w-[280px] h-[280px] relative transition-transform duration-[3000ms] ease-linear group-hover:[transform:rotateX(72deg)_rotateZ(45deg)]"
-                  style={{ transformStyle: 'preserve-3d', transform: 'rotateX(60deg) rotateZ(45deg)' }}
-                >
-                   {/* Grid Base */}
-                   <div className="absolute inset-0 bg-emerald-950 border border-emerald-500/50 rounded-xl" style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
-                      <div className="w-full h-full" style={{ backgroundImage: 'linear-gradient(rgba(16, 185, 129, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.2) 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                   </div>
+            <div className="w-full h-[400px] rounded-[2rem] overflow-hidden relative isolate">
+              <Map
+                initialViewState={{
+                  longitude: -118.2437,
+                  latitude: 34.0522,
+                  zoom: 14.5,
+                  pitch: 50,
+                  bearing: 25
+                }}
+                mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+                interactive={true}
+              >
 
-                   {/* Blocks / Structures */}
-                   <div className="absolute top-10 left-10 w-12 h-12 bg-amber-500/80 border border-amber-300" style={{ transform: 'translateZ(24px)' }}></div>
-                   <div className="absolute top-10 left-10 w-12 h-12 bg-amber-600/90 origin-bottom" style={{ transform: 'translateY(-24px) rotateX(90deg)' }}></div>
-                   <div className="absolute top-10 left-10 w-12 h-12 bg-amber-400/90 origin-right" style={{ transform: 'translateX(24px) rotateY(90deg)' }}></div>
+                {structures.map((s, i) => {
+                  if (s.type === 'tram_route' || s.type === 'cycle_route') return null;
 
-                   <div className="absolute top-32 left-16 w-16 h-8 bg-blue-500/80 border border-blue-300" style={{ transform: 'translateZ(10px)' }}></div>
-                   
-                   <div className="absolute top-20 right-20 w-8 h-20 bg-emerald-500/80 border border-emerald-300" style={{ transform: 'translateZ(40px)' }}></div>
-                   <div className="absolute top-20 right-20 w-8 h-20 bg-emerald-600/90 origin-bottom" style={{ transform: 'translateY(-40px) rotateX(90deg)' }}></div>
-                   <div className="absolute top-20 right-20 w-8 h-20 bg-emerald-400/90 origin-right" style={{ transform: 'translateX(16px) rotateY(90deg)' }}></div>
-                   
-                   {/* Windmill lines */}
-                   <div className="absolute bottom-16 right-10 w-4 h-4 rounded-full bg-stone-300 animate-spin" style={{ transform: 'translateZ(60px)' }}>
-                      <div className="w-10 h-1 bg-stone-200 absolute top-1.5 -left-3 rounded" />
-                      <div className="w-1 h-10 bg-stone-200 absolute -top-3 left-1.5 rounded" />
-                   </div>
-                   <div className="absolute bottom-16 right-10 w-4 h-4 bg-stone-500" style={{ transform: 'translateZ(30px)' }}></div>
-                </div>
+                  let color = '#3b82f6';
+                  let label = 'Unknown';
+                  switch(s.type) {
+                    case 'agro_alley': color = '#22c55e'; label = 'Agroforestry Alley'; break;
+                    case 'chinampa': color = '#3b82f6'; label = 'Aquatic Chinampa'; break;
+                    case 'badgir': color = '#f59e0b'; label = 'Badgir Windcatcher'; break;
+                    case 'battery': color = '#f97316'; label = 'Eco-Battery Storage'; break;
+                    case 'windmill': color = '#9ca3af'; label = 'Kinetic Windmill'; break;
+                    case 'animal_husbandry': color = '#ef4444'; label = 'Animal Husbandry'; break;
+                    case 'solar_field': color = '#000000'; label = 'Solar Field'; break;
+                    case 'water_reservoir': color = '#06b6d4'; label = 'Water Reservoir'; break;
+                  }
+                  
+                  return (
+                    <MaplibreMarker key={`3d-${i}`} longitude={s.lng} latitude={s.lat} anchor="bottom">
+                      <div 
+                        className="w-4 h-4 rounded-full border-2 border-white shadow-lg cursor-pointer transition-transform hover:scale-125" 
+                        style={{ backgroundColor: color }}
+                        onMouseEnter={() => setHoverInfo({ lng: s.lng, lat: s.lat, label })}
+                        onMouseLeave={() => setHoverInfo(null)}
+                      />
+                    </MaplibreMarker>
+                  );
+                })}
+
+                <Source id="tram-source" type="geojson" data={{
+                  type: 'FeatureCollection',
+                  features: tramSegments.map((seg) => ({
+                    type: 'Feature',
+                    geometry: {
+                      type: 'LineString',
+                      coordinates: seg.map(pos => [pos[1], pos[0]])
+                    },
+                    properties: {}
+                  }))
+                }}>
+                  <Layer
+                    id="tram-lines"
+                    type="line"
+                    paint={{
+                      'line-color': '#8b5cf6',
+                      'line-width': 4,
+                      'line-dasharray': [2, 2]
+                    }}
+                  />
+                </Source>
+
+                <Source id="cycle-source" type="geojson" data={{
+                  type: 'FeatureCollection',
+                  features: cycleSegments.map((seg) => ({
+                    type: 'Feature',
+                    geometry: {
+                      type: 'LineString',
+                      coordinates: seg.map(pos => [pos[1], pos[0]])
+                    },
+                    properties: {}
+                  }))
+                }}>
+                  <Layer
+                    id="cycle-lines"
+                    type="line"
+                    paint={{
+                      'line-color': '#eab308',
+                      'line-width': 4
+                    }}
+                  />
+                </Source>
+
+                {hoverInfo && (
+                  <MaplibrePopup
+                    longitude={hoverInfo.lng}
+                    latitude={hoverInfo.lat}
+                    closeButton={false}
+                    closeOnClick={false}
+                    anchor="bottom"
+                    offset={[0, -20]}
+                  >
+                    <div className="font-bold text-stone-800 text-xs px-2 py-1">{hoverInfo.label}</div>
+                  </MaplibrePopup>
+                )}
+              </Map>
             </div>
             
-            <div className="absolute bottom-6 w-full px-6 flex justify-between items-end">
-               <div className="text-stone-400 text-xs font-mono">Render: WebGL Fallback<br/>Physics: Live</div>
-               <button className="bg-white/10 hover:bg-white/20 text-white rounded-xl px-4 py-2 border border-white/20 text-sm font-semibold transition-colors backdrop-blur-md">
-                   Enter 3D View
-               </button>
+            <div className="absolute bottom-6 left-6 z-[100] text-stone-400 text-xs font-mono bg-black/40 px-3 py-1.5 rounded-lg backdrop-blur-md">
+                Render: MapLibre GL - Carto<br/>Physics: Live
+            </div>
+            <div className="absolute bottom-6 right-6 z-[100]">
+                <button className="bg-white/10 hover:bg-white/20 text-white rounded-xl px-4 py-2 border border-white/20 text-sm font-semibold transition-colors backdrop-blur-md">
+                    Reset View
+                </button>
             </div>
         </div>
 
