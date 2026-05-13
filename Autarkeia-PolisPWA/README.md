@@ -1,6 +1,6 @@
 # Autarkeia-Polis 🍃
 <div align="center">
-  <img src="./badge.svg" width="340"/>
+  <img src="../badge.svg" width="340"/>
 </div>
 > **Zero-Energy Waste • Self-Sufficient • Smart Ancient City Master-Plan**
 
